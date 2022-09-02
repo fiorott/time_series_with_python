@@ -114,7 +114,7 @@ google[google.price.isnull()]
 
 
 #__________
-Exercício
+#Exercício
 #_______
 #We have already imported pandas as pd and matplotlib.pyplot as plt and we have already loaded the 'yahoo.csv'
 # file in a variable yahoo with DateTimeIndex and a single column price.
@@ -126,7 +126,14 @@ Exercício
 #Use pd.concat() to combine the yearly data with the data in prices along axis=1.
 #Plot prices.
 
+#Import data
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\yahoo.csv'
+yahoo = pd.read_csv(path, parse_dates = ['date'], index_col='date')
+yahoo.info()
 # Create dataframe prices here
+
+
+
 prices = pd.DataFrame()
 
 # Select data for each year and concatenate with prices here
@@ -163,23 +170,28 @@ plt.show()
 #Change the the frequency to monthly using the alias 'M'.
 #Show another plot of co using subplots=True.
 
-# Inspect data
-print(co.info())
-co.head()
-# Set the frequency to calendar daily
-co = co.asfreq('D')
 
-# Plot the data
-co.plot()
-plt.show()
-
-
-# Set frequency to monthly
-co = co.asfreq('M')
-
-# Plot the data
-co.plot()
-plt.show()
+# path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\air_quality_data\co_cities.csv'
+# co = pd.read_csv(path)
+#
+#
+# # Inspect data
+# print(co.info())
+# co.head()
+# # Set the frequency to calendar daily
+# co = co.asfreq('D')
+#
+# # Plot the data
+# co.plot()
+# plt.show()
+#
+#
+# # Set frequency to monthly
+# co = co.asfreq('M')
+#
+# # Plot the data
+# co.plot()
+# plt.show()
 #_____________
 #Lags, changes and returns for stock price series
 # É possível movimentar os dados no tempo, de forma que a gente possa comprar valores em diferentes pontos do tempo.
@@ -188,14 +200,17 @@ plt.show()
 
 
 #Vamos importar noavemente a série tempora de preços de ações do Google
-google = pd.read_csv('google.csv', parse_dates = ['date'], index_col='date')
+
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\google.csv'
+
+google = pd.read_csv(path, parse_dates = ['Date'], index_col='Date')
 google.info()
 # ao invés de usarmos pdtodate, podemos já dizer ao comando read_csv para carregar algumas das colunas ocmo datas.
 # para isto basta fornecê-las como uma lista.
 #Também é possível definir uma coluna como índice forcenedno o parâmtero index_col
 #Como resultado, obtemos uma série temporal já formatada
 google.head()
-
+google['price'] = google['Close']
 #O primeito métodos de séries temporais é o .shift():, que permite deslocar todos os dados da séie ou dataframe para
 #o passado ou futuro. A versão deslocada em um período para o futuro  dos dados da série temporal  ficaria assim:
 google['shifted'] = google.price.shift() # padrão: period = 1
@@ -235,11 +250,33 @@ google[['price','diff']].head(3)
 
 #Finalmente, por ser uma operação tão comun, pandas tem um método embutido para calcular a variação percentual diretamente.
 #Xt / Xt-1
-google['pct_change'] = google.price.pct_chnge().mul(100)
+google['pct_change'] = google.price.pct_change().mul(100)
 google[['price','return','pct_change']].head(3)
 
-# Nos exemplo susamos o default period = 1, mas é possível usar outros valores para cancular em relação à períodos mais distantes
+# Nos exemplos usamos o default period = 1, mas é possível usar outros valores para cancular em relação à períodos mais distantes
 google['return_3d'] = google.price.pct_change(periods = 3).mul(100)
 google[['price','return_3d']].head()
 # Este exemplo mostra a diferença entre preços com 3 dias de diferença
 
+##___
+##Exercício
+
+#Shifting stock prices across time
+#The first method to manipulate time series that you saw in the video was .shift(), which allows you shift all values in a Series or DataFrame by a number of periods to a different time along the DateTimeIndex.
+
+#Let's use this to visually compare a stock price series for Google shifted 90 business days into both past and future.
+
+# Import data here
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\google.csv'
+google = pd.read_csv(path, parse_dates = ['Date'], index_col='Date')
+# Set data frequency to business daily
+google = google.asfreq('B')
+
+# Create 'lagged' and 'shifted'
+google['lagged'] = google.Close.shift(periods = -90)
+google['shifted'] = google.Close.shift(periods = 90)
+
+# Plot the google price series
+
+google.plot()
+plt.show()
