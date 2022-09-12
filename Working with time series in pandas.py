@@ -89,7 +89,8 @@ google. rename(columns = {'Close':'price'}, inplace = True)
 import matplotlib.pyplot as plt
 google.price.plot(title = 'Google Stock Price')  # Se o dataset tiver muitas colunas, além da de séries de dados, usar subplots = True plota cada uma contra a série temporal.
 
-plt.tight_layout(); plt.show()
+plt.tight_layout(); plt.show(block=False)
+plt.pause(0.001)
 # Para selecionar subconjuntos da série temporal você pode usar strings que representam
 # todas as datas ou só partes das datas que sejam relevantes. Se passar um ano, retornará todas
 # as datas deste ano
@@ -144,18 +145,28 @@ for year in ['2013', '2014', '2015']:
 
 # Plot prices
 prices.plot()
-plt.show()
+plt.show(block = False)
+plt.pause(0.001)
 
-#__________
+#exercicio
+#Calculating stock price changes
+# You have learned in the video how to calculate returns using current and shifted prices
+# #as input. Now you'll practice a similar calculation to calculate absolute changes from
+# current and shifted prices, and compare the result to the function .diff().
+# Created shifted_30 here
+yahoo['shifted_30'] = yahoo.price.shift(periods = 30)
+
+# Subtract shifted_30 from price
+yahoo['change_30'] =  yahoo['price'] - yahoo['shifted_30'] #__________
 #Exercício - COm o código abaixo é muito fácil a serie em dias ou meses.
-#_______
-
+# Get the 30-day price difference#_______
+yahoo['diff_30'] = yahoo.price.diff(periods = 30)
 #Set and change time series frequency
-#In the video, you have seen how to assign a frequency to a
-# DateTimeIndex, and then change this frequency.
+# Inspect the last five rows of price#In the video, you have seen how to assign a frequency to a
+print(yahoo.tail(5))# DateTimeIndex, and then change this frequency.
 
-#Now, you'll use data on the daily carbon monoxide concentration
-# in NYC, LA and Chicago from 2005-17.
+# Show the value_counts of the difference between change_30 and diff_30#Now, you'll use data on the daily carbon monoxide concentration
+print(yahoo.change_30.sub(yahoo.diff_30).value_counts())# in NYC, LA and Chicago from 2005-17.
 
 #You'll set the frequency to calendar daily and then resample
 # to monthly frequency, and visualize both series to see how the
@@ -279,4 +290,175 @@ google['shifted'] = google.Close.shift(periods = 90)
 # Plot the google price series
 
 google.plot()
+plt.show(block = False)
+plt.pause(0.001)
+
+#exercício
+
+# #Plotting multi-period returns
+# The last time series method you have learned about in the
+# video was .pct_change(). Let's use this function to calculate returns ' \
+# 'for various calendar day periods, and plot the result to compare the different patterns.
+#
+# We'll be using Google stock prices from 2014-2016.
+
+# Create daily_return
+google['daily_return'] = google.Close.pct_change().mul(100)
+
+# Create monthly_return
+google['monthly_return'] = google.Close.pct_change(30).mul(100)
+
+# Create annual_return
+google['annual_return'] = google.Close.pct_change(360).mul(100)
+
+# Plot the result
+google.plot(subplots=True)
+plt.show()
+
+
+#____________
+#Normalizing a single series
+
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\google.csv'
+google = pd.read_csv(path, parse_dates = ['Date'], index_col='Date')
+google.head(3)
+first_price = google.Close.iloc[0]
+first_price
+# It was posible to use iloc with the first date, but in this way we do not need to know the exact day
+first_price == google.loc['2014-01-02', "Close"]
+# Now we divide the series by the first price and multiply by 100 to normalize
+normalized = google.Close.div(first_price).mul(100)
+normalized.plot(title = 'Google Normalized Price Series')
+
+#Let's now compare several stocks
+# Normalize multiple series (1)
+#Lets import prices fr google, yahoo and apple
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\stock_data.csv'
+prices = pd.read_csv(path, parse_dates = ['Date'], index_col=['Date'], sep =',')
+prices.info()
+prices.head(5)
+prices.iloc[0]
+# se você dividir um DataFrame por uma série usando o método div, o pandas garante que os rótulos das linhas da
+# série se alinhem com os cabeçalhos de coluna do DataFrame. Ou Seja, Os dados dos preços das diferenets ações podem estar
+# todos na mesma coluna, se eu tiver uma coluna que diz a qual ação pertencem (categoria), ao fazer
+# a noramlização com .div() o pandas gerará uma coluna para daca um normalizada. Ou seja, parte de single values para
+# varias colunas e DataFrame(s)
+
+normalized_1 = prices.div(prices.iloc[0])
+normalized_1.head(3)
+
+
+# Comparing to a benchmark
+
+#Adicionando um benchmark para comparar a performance destas ações com um índice
+
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\index.csv'
+index = pd.read_csv(path, parse_dates = ['Date'], index_col='Date')
+#index. rename(columns = {'0':'S&P500'}, inplace = True)
+index.info()
+index.head(5)
+# Uma vez que o dado vem de fontes diferentes, usamos dropna() para remover os registros nulos e combinamos as duas fontes de dados em um DF
+prices_full = pd.concat([prices, index], axis = 1).dropna()
+prices_full.info()
+prices_full.head(5)
+
+
+# Podemos dividir as 4 séries pelo primeiro preço de cada, respectivamente, multiplicar por 100 e facilmnete
+# Verificar como cada uma performou contra o S&P500 e em relação a cada uma.
+
+normalized = prices_full.div(prices_full.iloc[0]).mul(100)
+normalized.plot()
+plt.show()
+
+# Para mostrar a performance de cada ação em relação aoa benchmark em termos percentuais, podemos subtrair
+# o S&p500 normalizado dos valores das ações normalizados.
+# Use .sub() com a keyword axis - 0 para alinhar o indice da série com o índice do dataframe.
+# Isto faz ocm que o pandas subtraia a série de cada um das colunas
+
+diff_1 = normalized.loc[:,normalized.columns != 'Unnamed: 1'].sub(normalized['Unnamed: 1'], axis =0)
+diff_f =  pd.concat([diff_1, normalized.iloc[: , -1]], axis = 1)
+diff_f.rename(columns={'Unnamed: 1':'SP500'}, inplace=True)
+# Como resultado, podemos ver como cada ação performou contra o benchmark
+diff_f.plot()
+plt.show()
+
+
+#__________
+
+# Compare the performance of several asset classes
+# To broaden your perspective on financial markets, let's compare four key assets: stocks, bonds, gold, and oil.
+# Import data here
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\asset_classes.csv'
+prices = pd.read_csv(path, parse_dates = ['DATE'], index_col='DATE')
+
+# Inspect prices here
+print(prices.info())
+
+# Select first prices
+first_prices = prices.iloc[0]
+
+# Create normalized
+normalized = prices.div(first_prices).mul(100)
+# Plot normalized
+normalized.plot()
+plt.show()
+
+#_____________
+
+# Comparing stock prices with a benchmark
+# You also learned in the video how to compare the performance of various stocks against a benchmark.
+# Now you'll learn more about the stock market by comparing the three largest stocks on the NYSE to the
+# Dow Jones Industrial Average, which contains the 30 largest US companies.
+#
+# The three largest companies on the NYSE are:
+#
+# Company	Stock Ticker
+# Johnson & Johnson	JNJ
+# Exxon Mobil	XOM
+# JP Morgan Chase	JPM
+
+# Import stock prices and index here
+path_1 = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\nyse.csv'
+path_2 = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\dow_jones.csv'
+stocks =  pd.read_csv(path_1, parse_dates = ['date'], index_col='date')
+dow_jones = pd.read_csv(path_2, parse_dates = ['date'], index_col='date')
+
+# Concatenate data and inspect result here
+data = pd.concat([stocks,dow_jones], axis = 1)
+print(data.info())
+
+# Normalize and plot your data here
+
+normalized = data.div(data.iloc[0]).mul(100).plot()
+
+plt.show()
+
+#___________
+
+# Plot performance difference vs benchmark index
+# In the video, you learned how to calculate and plot the performance difference of a
+# stock in percentage points relative to a benchmark index.
+#
+# Let's compare the performance of Microsoft (MSFT) and Apple (AAPL) to the S&P 500 over the last 10 years.
+
+# Create tickers
+tickers = ['MSFT', 'AAPL']
+
+# Import stock data here
+path_1 = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\msft_aapl.csv'
+stocks = pd.read_csv(path_1, parse_dates=['date'], index_col='date')
+
+# Import index here
+path_2 = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\sp500.csv'
+sp500 = pd.read_csv(path_2 , parse_dates=['date'], index_col='date')
+
+
+# Concatenate stocks and index here
+data = pd.concat([stocks, sp500], axis=1).dropna()
+
+# Normalize data
+normalized = data.div(data.iloc[0]).mul(100)
+
+# Subtract the normalized index from the normalized stock prices, and plot the result
+normalized[tickers].sub(normalized['SP500'], axis=0).plot()
 plt.show()
