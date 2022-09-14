@@ -194,7 +194,8 @@ print(yahoo.change_30.sub(yahoo.diff_30).value_counts())# in NYC, LA and Chicago
 #
 # # Plot the data
 # co.plot()
-# plt.show()
+#plt.show(block = False)
+#plt.pause(0.001)
 #
 #
 # # Set frequency to monthly
@@ -368,7 +369,8 @@ prices_full.head(5)
 
 normalized = prices_full.div(prices_full.iloc[0]).mul(100)
 normalized.plot()
-plt.show()
+plt.show(block = False)
+plt.pause(0.001)
 
 # Para mostrar a performance de cada ação em relação aoa benchmark em termos percentuais, podemos subtrair
 # o S&p500 normalizado dos valores das ações normalizados.
@@ -380,7 +382,8 @@ diff_f =  pd.concat([diff_1, normalized.iloc[: , -1]], axis = 1)
 diff_f.rename(columns={'Unnamed: 1':'SP500'}, inplace=True)
 # Como resultado, podemos ver como cada ação performou contra o benchmark
 diff_f.plot()
-plt.show()
+plt.show(block = False)
+plt.pause(0.001)
 
 
 #__________
@@ -401,7 +404,8 @@ first_prices = prices.iloc[0]
 normalized = prices.div(first_prices).mul(100)
 # Plot normalized
 normalized.plot()
-plt.show()
+plt.show(block = False)
+plt.pause(0.001)
 
 #_____________
 
@@ -431,7 +435,8 @@ print(data.info())
 
 normalized = data.div(data.iloc[0]).mul(100).plot()
 
-plt.show()
+plt.show(block = False)
+plt.pause(0.001)
 
 #___________
 
@@ -461,4 +466,209 @@ normalized = data.div(data.iloc[0]).mul(100)
 
 # Subtract the normalized index from the normalized stock prices, and plot the result
 normalized[tickers].sub(normalized['SP500'], axis=0).plot()
-plt.show()
+
+plt.show(block = False)
+plt.pause(0.001)
+
+#________________
+
+# Changing the time series frequency: resampling
+
+# Quando mudamos a frequencia dos dados usando .asfreq(), esta conversao afeta os dados.
+
+# Upsampling: preenche ou faz interpolação nos dados que estão faltando ao converter os dados
+# para um frequencia mais alta. É preciso dizer ao bandas ocmo preencher as novas linhas que serão criadas
+
+# Downsampling: para reduzir o numero de linhas, precisamos dizer ao pandas como fazer a agregação (generelização_
+# dos dados
+
+# Para ilustrar o upsampling, vamos criar uma serie de dados de baixa frequencia relativa , quadrimestral,
+# para o ano de 2016, usando os valores integers de 1-4.
+
+dates = pd.date_range(start = '2016', periods = 4, freq = 'Q')
+data = range(1,5)
+quarterly = pd.Series(data = data, index = dates)
+quarterly
+
+# Quando escolhemos a frequencia trimestral (quarter = trimestre), o pandas padroniza como sendo Dezembro
+# o final para o 4º trimestre, o que poderia ser modificado usando-se um mês diferente com o quarter alias.
+# Vamos ver o que acontece quando fazemos um upsampling da nossa série ao converter a frequência de trimestral
+# para mensal usando asfreq().
+
+monthly = quarterly.asfreq('M') # para uma frequencia que termina em mês.
+
+# O pandas adiciona ao DateTimeIndex novas datas de final de mês entre as datas existentes
+# Porém, haverá vários meses se dados entre os meses que não eram cabeça de trimestre (mar/jun/set/dez)
+# Agora, vamos ver as opções que o pandas no dá para preencher os valores que estão faltando.
+
+# Vamos criar um dataframe que contém todas as alternativas à linha base, que é a primeira coluna.
+# POdemos converter uma série para u dataframe aplicando o método _frame() e passando o nome
+# de uma coluna como parâmetro.
+# As duas primeiras opções envolvem a escolha de um método de preenchimento, seja para frente ou para trás.
+# A terceira opção é fornecer um valor de preenchimento.
+
+monthly['ffill'] = quarterly.asfreq('M', method = 'ffill')
+monthly['bfill'] = quarterly.asfreq('M', method = 'bfill')
+monthly['value'] = quarterly.asfreq('M', fill_value = 0)
+
+#  Se compararmos os resultados, verá que o o preenchumento pra fente (forward fill) propaga
+# o valor para o futuro onde há missing values, o para trás (backfill) faz o mesmo só que na direção contrária,
+# o terceiro atribui a todos os misisngs values o valor que foi passado no prâmetro fill_value.
+
+# Se você quer um DateTimeIndex que cubra o ano inteiro, você pode usar o método .reindex().
+# O pandas alinhas os dados existentes com os novos valores mensais e produz missing values nos outros lugares.
+
+dates = pd.date_range(start = '2016', periods = 12, freq = 'M')
+# o método .reindex() ajusta o DataFRame para o novo índice de datas. É a mesma logica do .asfre()
+# Em outras palavras, quarterly antes um DateTimeIndex composto por 4 datas (uma ao final de cada trimestre de 2016),
+# Sendo que para cada uma tínhamos um valor de 1 até 4. Ao usarmos .reindex() com o novo dates feito acima
+# que possui frequencia, as datas ao final daqueles 4 meses de 2016 terão automaticamente os valores
+# preenchidos com os mesmos valores anteriores, sendo que as demais constarão como missing values.
+quarterly.reindex(dates)
+# Você pode usar exatamente as mesmas opções de preenchimento para reindexar assim como você fez no asfreq.
+
+#---
+#Exercício
+
+# Convert monthly to weekly data
+# You have learned in the video how to use .reindex() to conform an existing
+# time series to a DateTimeIndex at a different frequency.
+#
+# Let's practice this method by creating monthly data and then converting ' \
+#    'this data to weekly frequency while applying various fill logic options.
+
+# Set start and end dates
+start = '2016-1-1'
+end = '2016-2-29'
+
+# Create monthly_dates here
+monthly_dates = pd.date_range(start = start, end = end, freq = 'M')
+
+# Create and print monthly here
+monthly = pd.Series(data = [1,2], index = monthly_dates)
+print(monthly)
+
+# Create weekly_dates here
+weekly_dates = pd.date_range(start = start, end = end, freq = 'W')
+
+# Print monthly, reindexed using weekly_dates
+print(monthly.reindex(weekly_dates))
+print(monthly.reindex(weekly_dates,method = 'bfill'))
+print(monthly.reindex(weekly_dates,method = 'ffill'))
+
+# ______
+# Exercício
+
+# Create weekly from monthly unemployment data
+# The civilian US unemployment rate is reported monthly.
+# You may need more frequent data, but that's no problem because you just learned how to upsample a time series.
+#
+# You'll work with the time series data for the last 20 years, and apply ' \
+#    'a few options to fill in missing values before plotting the weekly series.
+
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\unrate_2000.csv'
+data = pd.read_csv(path, parse_dates=['date'], index_col = 'date')
+
+# Show first five rows of weekly series
+print(data.asfreq('W').head(5))
+
+# Show first five rows of weekly series with bfill option
+print(data.asfreq('W',method = 'bfill').head(5))
+
+# Create weekly series with ffill option and show first five rows
+weekly_ffill = data.asfreq('W',method = 'ffill')
+print(weekly_ffill.head(5))
+
+# Plot weekly_fill starting 2015 here
+
+weekly_ffill.loc['2015':].plot()
+
+plt.show(block = False)
+plt.pause(0.001)
+###___
+
+#  Upsampling & interpolation with .resample()
+# O método resampling segue lógica similar a  do groupby. Ele agrupa os dados dentro de uma periodo de reamostragem
+# e aplica um metodo a este grupo. Ele pega o valor resutante desse método e atribui uma nova data dentro
+# do período de reamostragem. A nnova data é determinada pelo chamadao offset, que pode ser, por exmeplo
+# o início ou o fim fo período ou uma localizção customizada.
+# Vamos usar o .resample() para interpolar dados que estçao faltando durante um up-sampling ou para agregar dados
+# quando estivermos fazendo down-sampling.
+
+# Obtendo os dados de desemprego nos eua desde 2000
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\unrate.csv'
+unrate = pd.read_csv(path, parse_dates=['DATE'], index_col = 'DATE')
+#note que os dados não tem informação de frequencia
+unrate.info()
+# os dados são reportados a cada dia 01 de cada mês.
+unrate.head()
+# Até agora, fizems reamostragens que focavam em frequencias com data final do mês. Em outras palavras,
+# Após o resampling, os novos dados eram associados ao último dia do calendário de cada mês.
+# Mas existem alternativas, como as que podem ser vistas na tabela "Resampling Period & Frequency Offsets:
+# https://datascience103579984.wordpress.com/2019/09/20/manipulating-time-series-data-in-python-from-datacamp/2/
+# lista completa
+# https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#offset-aliases
+# É importante notar que os dias inicias e finais do calendário corrido - calendar (M - fm do mÊs/MS - início do mÊs)
+# pode varia do dia inicial e final do mês úti - bbussines (BM - última dia útil do mÊs / BMS - primeiro dia utul do mÊs)
+
+# Quando fazemos um umsampling, haverá mais novos pontos de períodos do que de dados.
+# Cada período do resampling vai ter uma determinada data de deslocamento, por exemplo, a frequencia de data final do mês.
+# Você então precisa decidir como cri dados para os novos períodos de resampling. Os novos pontos de dados serão associados
+# aos pontos de períodos com datas deslocadas.
+# Em contraste, quando fazemos um downsampling, temos mais pontos de dados do que pontos de período.
+# Assim, você tem que decidir como agregar os dados de forma a obter só um valor para cada ponto.
+
+# Você pode usar .resample()  para definir uma frequencia para os dados de taxas de desemprego.
+# Vamos usar a frequencia de data de início do mês já que é a data que o dado é reportado.
+unrate.asfreq('MS').info()
+# Quando você usa o method resample, ele retorna um novo objeto chamado resampler object
+#unrate.resample('MS') # cria o objeto de reamostrage / resampler object
+
+# Aplique outro método e ele retornará novamente um dataframe.
+#unrate.resample('MS').equals(unrate.resample('MS').asfreq())
+# Você pode aplicar o método .asfreq() para associar os dados a seu ofset sem fazer modificaçoes
+# o método .equal() te diz que as duas abordagens trazem o mesmo resultado
+
+# Quarterly real GDP growth
+
+# Vamos usar um dado trimestral de crescimento do PIB real.
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\gdp_growth.csv'
+gdp = pd.read_csv(path, parse_dates=['date'], index_col = 'date')
+# Você pode ver que não há informação sobre a frequência
+gdp.info()
+# Mas verificando as primeiras linhas vemos que o dado sai no primeiro dia de cada trimestre (quarter)
+gdp.head(2)
+# Você poder usar .resample para converter esta série para uma frequencia de início de mês, e então fazer um
+# forward fill para preencher os gaps. Estamos uando add_sufix para distinguir o label de coluna da variação que
+# nós vamos produzir a seguir
+gdp_1 = gdp.resample ('MS').ffill().add_sufix('_ffill')
+# o resample também permite que você interpole os missing values ou seja preencha os valores que caem em uma
+# linha reta entre os dados que trimestrais que de crescimento do PIB que existem.
+gdp2 = gdp.resample('MS').interpolate().add_suffix('_inter')
+# Uma olhada nas primeiras colunas mostra como interpolar os valores medianos existentes do dado do PIB trimestral
+gdp2.head()
+# Agora combinamos as duas séries usando a funcção de concatenação do pandas
+df1 = pd.DataFrame([1,2,3], columns =['df1'])
+df2 = pd.DataFrame([4,5,6], columns =['df2'])
+pd.concat([df1,df2])
+# Se usacom o paramtero default axis = 0 , ele ira emplihar os dados, tentando lainhar colunas que não se encaixam
+# Usar axis =1 faz com que o pandas concatene os dados de maneira horizontal, alinhando pelo row index.
+pd.concat([df1,df2], axis = 1)
+# Se plotarmos os dados dos últimos dois anos é possível visualizar como os novos pontos de dados serão interpolados
+# entre os pontos já existentes, enquanto o forward filling cria um padrão de escadinha.
+pd.concat([gdp_1,gdp_2], axis = 1).loc['2015':].plot()
+
+plt.show(block = False)
+plt.pause(0.001)
+# Depois de fazer o resampling do crescimento do PIB, você pode plotar as séries de dados do desemprego e do PIB
+# com base nas novas frequencias em comun
+pd.concat([unrate, gdp_inter], axis = 1).plot()
+plt.show(block = False)
+plt.pause(0.001)
+
+
+
+
+
+
+
