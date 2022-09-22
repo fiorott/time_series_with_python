@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
 time_stamp = pd.Timestamp(datetime(2017, 1, 1))  #pd.Timestamp é o comando base de tudo 1) esta é uma das formas de criar um timestamp
 pd.Timestamp('2017-01-01') == time_stamp  #2) esta também faz a mesma coisa
 print(time_stamp) # associa automaticamente com o horário de meia-noite
@@ -86,7 +87,7 @@ google. rename(columns = {'Close':'price'}, inplace = True)
 # O data frame resultante trata toda a série temporal como uma dado de série temporl
 # Plotar o preço da ação mostra que ela vem se saindo bem nos últimos dois anos
 # com base no datimeindex o pandas já crias rótulos razoáveis para os eixos
-import matplotlib.pyplot as plt
+
 google.price.plot(title = 'Google Stock Price')  # Se o dataset tiver muitas colunas, além da de séries de dados, usar subplots = True plota cada uma contra a série temporal.
 
 plt.tight_layout(); plt.show(block=False)
@@ -624,11 +625,10 @@ unrate.asfreq('MS').info()
 # Quando você usa o method resample, ele retorna um novo objeto chamado resampler object
 #unrate.resample('MS') # cria o objeto de reamostrage / resampler object
 
-# Aplique outro método e ele retornará novamente um dataframe.
-#unrate.resample('MS').equals(unrate.resample('MS').asfreq())
-# Você pode aplicar o método .asfreq() para associar os dados a seu ofset sem fazer modificaçoes
+# Aplique um outro método e ele retornará novamente um dataframe.
+# Você pode aplicar o método .asfreq() para associar os dados a seu offset sem fazer modificaçoes
 # o método .equal() te diz que as duas abordagens trazem o mesmo resultado
-
+unrate.asfreq('MS').equals(unrate.resample('MS').asfreq())
 # Quarterly real GDP growth
 
 # Vamos usar um dado trimestral de crescimento do PIB real.
@@ -638,20 +638,22 @@ gdp = pd.read_csv(path, parse_dates=['date'], index_col = 'date')
 gdp.info()
 # Mas verificando as primeiras linhas vemos que o dado sai no primeiro dia de cada trimestre (quarter)
 gdp.head(2)
-# Você poder usar .resample para converter esta série para uma frequencia de início de mês, e então fazer um
-# forward fill para preencher os gaps. Estamos uando add_sufix para distinguir o label de coluna da variação que
-# nós vamos produzir a seguir
-gdp_1 = gdp.resample ('MS').ffill().add_sufix('_ffill')
-# o resample também permite que você interpole os missing values ou seja preencha os valores que caem em uma
-# linha reta entre os dados que trimestrais que de crescimento do PIB que existem.
-gdp2 = gdp.resample('MS').interpolate().add_suffix('_inter')
-# Uma olhada nas primeiras colunas mostra como interpolar os valores medianos existentes do dado do PIB trimestral
+
+# Você poder usar .resample para converter esta série para uma frequencia mensal (com data no primeiro dia de mês), e
+# então fazer um forward fill para preencher os gaps dos novos pontos mensais. Estamos uando add_sufix para distinguir
+# o label de coluna da variação que nós vamos produzir em seguida
+gdp_1 = gdp.resample('MS').ffill().add_suffix('_ffill')
+
+# o resample também permite que você use mu método para interpolar valores que alimentarão  os missing values, ou seja,
+# preenchendo os valores que caem em uma linha reta entre os dados trimestrais de crescimento do PIB que já existem.
+gdp_2 = gdp.resample('MS').interpolate().add_suffix('_inter')
+# Uma olhada nas primeiras colunas mostra como foram interpolados valores medianos entre os dados já existentes do PIB trimestral
 gdp2.head()
 # Agora combinamos as duas séries usando a funcção de concatenação do pandas
 df1 = pd.DataFrame([1,2,3], columns =['df1'])
 df2 = pd.DataFrame([4,5,6], columns =['df2'])
 pd.concat([df1,df2])
-# Se usacom o paramtero default axis = 0 , ele ira emplihar os dados, tentando lainhar colunas que não se encaixam
+# Se usado com o paramtero default axis = 0 , ele ira emplihar os dados, tentando lainhar colunas que não se encaixam
 # Usar axis =1 faz com que o pandas concatene os dados de maneira horizontal, alinhando pelo row index.
 pd.concat([df1,df2], axis = 1)
 # Se plotarmos os dados dos últimos dois anos é possível visualizar como os novos pontos de dados serão interpolados
@@ -666,6 +668,102 @@ pd.concat([unrate, gdp_inter], axis = 1).plot()
 plt.show(block = False)
 plt.pause(0.001)
 
+
+# Use interpolation to create weekly employment data
+# You have recently used the civilian US unemployment rate, and converted it from monthly to weekly frequency using simple forward or backfill methods.
+#
+# Compare your previous approach to the new .interpolate() method that you learned about in this video.
+
+
+# Inspect data here
+print(monthly.info())
+print(monthly.head())
+
+# Create weekly dates
+weekly_dates = pd.date_range(start = monthly.index.min(), end = monthly.index.max(), freq = "W")
+weekly_dates
+# Reindex monthly to weekly data
+weekly = monthly.reindex(weekly_dates)
+weekly
+# Create ffill and interpolated columns
+weekly['ffill'] = weekly.UNRATE.ffill()
+weekly['interpolated'] = weekly.UNRATE.interpolate()
+
+# Plot weekly
+
+weekly.plot()
+plt.show()
+####_________
+
+# Interpolate debt/GDP and compare to unemployment
+# Since you have learned how to interpolate time series, you can now apply this new skill to the quarterly ]
+# debt/GDP series, and compare the result to the monthly unemployment rate.
+#
+# We have imported pandas as pd and matplotlib.pyplot as plt for you.
+#
+# Use pd.read_csv() to import 'debt_unemployment.csv', creating a DateTimeIndex from the 'date' column using parse_dates and index_col, and assign the result to data. print() the .info() of the data.
+# Apply .interpolate() to data and assign this to interpolated, then inspect the result.
+# Plot interpolated with 'Unemployment' on the secondary_y axis.
+
+# Import & inspect data here
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\debt_unemployment.csv'
+data = pd.read_csv(path, parse_dates=['date'], index_col = 'date')
+print(data.info())
+data.head(10)
+# Interpolate and inspect here
+interpolated = data.interpolate()
+print(interpolated.info())
+interpolated.head()
+# Plot interpolated data here
+interpolated.plot(secondary_y ='Unemployment' )
+
+plt.show(block = False)
+plt.pause(0.001)
+
+
+# Downsampling e aggregation methods - redução de frequência dos dados.
+# converter dados horários em diários
+# converter dados diários em mensais
+# O que usar: Media, mediana, o último valor ? Dependerá do cotexto
+
+# Vamos importar dados de qualidade do ar do enviromental protection agency
+
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\air_quality_data\ozone_nyc.csv'
+ozone = pd.read_csv(path, parse_dates=['date'], index_col = 'date')
+ozone.info()
+
+
+# Como o DateTimeIndex não tem dado de frequência, vamos atribuir a frequencia de dias corridos para ele
+ozone = ozone.resample('D').asfreq()
+ozone.info()
+
+# O resultado final agora inclui a frequência
+# Para converter de diário para mensal, basta aplicar o método resample com mês corrido e utilizando a média do mês para
+# agregação, ou seja, para termos um único valor por mês
+ozone.resample('M').mean().head()
+# O mesmo poder ser feito usando a mediana ou invès da média
+ozone.resample('M').median().head()
+# De maneira similar ao método group by, podemos aplicar várias métodos de uma só vez.
+# Basta passar ao método .agg um alista de funçoes de agregação como se faz com groupby
+ozone.resample('M').agg(['mean','std']).head()
+# Vamos plotar os dados começando em 2016
+ozone = ozone.loc['2016':]
+ax = ozone.plot()
+monthly = ozone.resample('M').mean()
+monthly.add_suffix('_monthly').plot(ax = ax)
+# ax=ax:   Matplotlib permite que você plote novamente no objeto dos eixos que é retornado pela primeira plotagem
+# A primiera plotagem é a série original. A segund aplotagem contém a serié temporal reamostrada (resamples serie)
+# com um sufixo para que a legenda reflita a diferença
+
+# Vamos ver também como reamostrar várias séries
+# Incluimos pm2.5, que mede a presença de pequenas partícolas e reamostramos os dados de 200 até recentemente
+# para a frequencia diária
+
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\air_quality_data\nyc.csv'
+ozone = pd.read_csv(path, parse_dates=['date'], index_col = 'date')
+ozone.info()
+data=data.resample('D').asfreq()
+data.info()
 
 
 
