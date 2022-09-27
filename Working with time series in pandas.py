@@ -648,7 +648,7 @@ gdp_1 = gdp.resample('MS').ffill().add_suffix('_ffill')
 # preenchendo os valores que caem em uma linha reta entre os dados trimestrais de crescimento do PIB que já existem.
 gdp_2 = gdp.resample('MS').interpolate().add_suffix('_inter')
 # Uma olhada nas primeiras colunas mostra como foram interpolados valores medianos entre os dados já existentes do PIB trimestral
-gdp2.head()
+gdp_2.head()
 # Agora combinamos as duas séries usando a funcção de concatenação do pandas
 df1 = pd.DataFrame([1,2,3], columns =['df1'])
 df2 = pd.DataFrame([4,5,6], columns =['df2'])
@@ -659,7 +659,7 @@ pd.concat([df1,df2], axis = 1)
 # Se plotarmos os dados dos últimos dois anos é possível visualizar como os novos pontos de dados serão interpolados
 # entre os pontos já existentes, enquanto o forward filling cria um padrão de escadinha.
 pd.concat([gdp_1,gdp_2], axis = 1).loc['2015':].plot()
-
+gdp_inter = pd.concat([gdp_1,gdp_2], axis = 1)
 plt.show(block = False)
 plt.pause(0.001)
 # Depois de fazer o resampling do crescimento do PIB, você pode plotar as séries de dados do desemprego e do PIB
@@ -686,13 +686,15 @@ weekly_dates
 weekly = monthly.reindex(weekly_dates)
 weekly
 # Create ffill and interpolated columns
-weekly['ffill'] = weekly.UNRATE.ffill()
-weekly['interpolated'] = weekly.UNRATE.interpolate()
+
+######## BUG BUG BUG
+#weekly['ffill'] = weekly.UNRATE.ffill()
+#weekly['interpolated'] = weekly.UNRATE.interpolate()
 
 # Plot weekly
 
-weekly.plot()
-plt.show()
+#weekly.plot()
+#plt.show()
 ####_________
 
 # Interpolate debt/GDP and compare to unemployment
@@ -760,12 +762,192 @@ monthly.add_suffix('_monthly').plot(ax = ax)
 # para a frequencia diária
 
 path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\air_quality_data\nyc.csv'
-ozone = pd.read_csv(path, parse_dates=['date'], index_col = 'date')
-ozone.info()
-data=data.resample('D').asfreq()
+data= pd.read_csv(path, parse_dates=['date'], index_col = 'date')
 data.info()
+data = data.resample('D').asfreq()
+data.info()
+#3m.04s
+# A reamostragem com v´rias séries tambpem funciona de maneira similar ao group by. O primeiro exemplo usa o últimoa dia
+# útil do mês.  Você pode selecionar qualuqer uma das colunas e aplicar o método que desejar.
+data = data.resample('BM').mean()
+data.info()
+# O pandas fornece os métodos first and last que permitem selecionar o primeiro e o último valor do período de
+# Reamostragem para representar o grupo.
+data.resample('M').first().head(4)
+data.resample('MS').first().head()
 
 
+#-------
+#Exercício
+
+# Compare weekly, monthly and annual ozone trends for NYC & LA
+# You have seen in the video how to downsample and aggregate time series on air quality.
+#
+# First, you'll apply this new skill to ozone data for both NYC and LA since 2000 to compare the air quality trend at '
+# 'weekly, monthly and annual frequencies and explore how different resampling periods impact the visualization.
+
+# Import and inspect data here
+
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\air_quality_data\ozone_nyla.csv'
+ozone= pd.read_csv(path, parse_dates=['date'], index_col = 'date')
+
+
+ozone.info()
+ozone.head()
+
+
+# Calculate and plot the weekly average ozone trend
+ozone.resample('W').mean().plot()
+plt.show()
+
+# Calculate and plot the monthly average ozone trend
+ozone.resample('M').mean().plot()
+plt.show()
+
+# Calculate and plot the annual average ozone trend
+ozone.resample('A').mean().plot()
+plt.show()
+
+##exercício
+
+# Compare monthly average stock prices for Facebook and Google
+# Now, you'll apply your new resampling skills to daily stock price series for Facebook and Google for the 2015-2016 ' \
+#         'period to compare the trend of the monthly averages
+
+# Import and inspect data here
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\goog_fb.csv'
+stocks = pd.read_csv(path, parse_dates = ['date'], index_col = 'date')
+print(stocks.info())
+
+# Calculate and plot the monthly averages
+monthly_average = stocks.resample('M').mean()
+monthly_average.plot(subplots = True)
+plt.show()
+
+###exer
+
+# Compare quarterly GDP growth rate and stock returns
+# With your new skill to downsample and aggregate time series, you can compare higher-frequency stock price series
+# to lower-frequency economic time series.
+#
+# As a first example, let's compare the quarterly GDP growth rate to the quarterly rate of return on the (resampled)' \
+#                        ' Dow Jones Industrial index of 30 large US stocks.
+#
+# GDP growth is reported at the beginning of each quarter for the previous quarter. To calculate matching stock returns,
+# you'll resample the stock index to quarter start frequency using the alias 'QS', and aggregating using the .first() observations.
+
+# Import and inspect gdp_growth here
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\gdp_growth.csv'
+gdp_growth = pd.read_csv(path, parse_dates=['date'], index_col = 'date')
+gdp_growth.info()
+
+# Import and inspect djia here
+path_2 = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\dow_jones.csv'
+djia = pd.read_csv(path_2, parse_dates=['date'], index_col='date')
+djia.info()
+
+# Calculate djia quarterly returns here
+djia_quarterly = djia.resample("QS").first()
+djia_quarterly_return = djia_quarterly.pct_change().mul(100)
+
+# Concatenate, rename and plot djia_quarterly_return and gdp_growth here
+data = pd.concat([gdp_growth, djia_quarterly_return], axis=1)
+data.head()
+data.rename(columns={'gdp_growth': 'gdp'}, inplace=True)
+data.plot()
+plt.show()
+
+
+##exerc
+
+
+
+# Exercise
+# Exercise
+# Visualize monthly mean, median and standard deviation of S&P500 returns
+# You have also learned how to calculate several aggregate statistics from upsampled data.
+#
+# Let's use this to explore how the monthly mean, median and standard deviation of daily S&P500 returns have trended ' \
+#    'over the last 10 years.
+#
+# Use pd.read_csv() to import 'sp500.csv', set a DateTimeIndex based on the 'date' column using parse_dates and
+# index_col, assign the results to sp500, and inspect using .info().
+# Convert sp500 to a pd.Series() using .squeeze(), and apply .pct_change() to calculate daily_returns.
+# .resample() daily_returns to month-end frequency (alias: 'M'), and apply .agg() to calculate 'mean', 'median',
+# and 'std'. Assign the result to stats.
+# .plot() stats.
+
+# Import data here
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\index.csv'
+sp500 = pd.read_csv(path, parse_dates = ['Date'], index_col='Date')
+
+sp500.info()
+
+# Calculate daily returns here
+daily_returns = sp500.squeeze().pct_change()
+daily_returns.head()
+
+# Resample and calculate statistics
+stats = daily_returns.resample('M').agg(['mean','median','std'])
+
+
+# Plot stats here
+stats.plot()
+plt.show()
+
+#______
+# Rolling window functions with pandas
+# As janelas identificam sub períodos dentro das séries temporais
+# Permitem calcular métricas para sub períodos dentro da janela de dados.
+# Permitem criar novas séries temporais com base em métricas.
+# Dois tipos de janelas:
+#   1) Rolling: janela de mesmo tamanho, deslocando no tempo (como nas médias móveis de 7, 30 dias)
+#   2) Expanding: contém todos os valores anteriores (all prior values)
+
+# Serve para criar "valores com base em uma janela de tempo". É útil, por exemplo, para criar uma coluna de dados com
+# uma média móvel dos últimos 30 ou 360 dias por exemplo. Além da média, também podemos gerar séries com o desvio padrão
+# ou outras variáveis ao combinar com o método agg, como os quartis de 10% e 90% (para gerar faixas de valores dos preços,
+# algo similar as bollinge bands)
+
+# Importando novamente os dados da ação do google.
+
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\google.csv'
+googledata = pd.read_csv(path, parse_dates = ['Date'], index_col='Date')
+googledata.head(3)
+# Isto significa que a janela vai conter os 30 dias anteriores de observação (trading days)
+# Quando você escolhe um tamanho de janela beaseado em um número inteiro, o pandas só calculará
+# Gerando uma média móvel (rolling average)
+googledata.rolling(window = 30).mean() # fixed # observations
+# a média se a janela não tiver valores ausentes (missing values). Você pode ajustar este valor padrão
+# definindo o parâmetro min_periods para um valor menor que o tamanho da janela de 30.
+
+# seguindo, tambpem é possível criar janelas com base em um offset das datas.
+# Se vc escolher 30d (30 dias corridos), a janela irá conter os dias em que as ações foram negociadas durante os últimos
+# 30 dias corridos.
+googledata.rolling(window = '30D').mean() # fixed period length
+# Embora a janela esteja fixa em termos de duração do período, o número de observações irá variar
+# Vamos ver qual a cara da rolling mean.
+# Vamos calcular a média móvel de 90 dias corridos e fazer um join no dataframe do preço das ações
+r90 = googledata.rolling(window='90D').mean()
+googledata.join(r90.add_suffix('_mean_90')).plot()  #.join concatena a serie ou DF ao longo do eixo axis =1 => horizontal
+# A nova série de dados será muito mais suave orque cada ponto agora é a médis dos 90 dias corridos anteriores.
+# Para ver como a mudança do parametro de tempo afeta a média móvel, vamos adicionar a média móvel de 360 dias corridos
+googledata['mean90'] = r90
+r360 = googledata['Close'].rolling(window = '360D').mean()
+googledata['mean360'] = r360;googledata.plot()
+# É possível identificar pontos onde as médias se cruzam, como em 2015.
+
+# De forma similar ao groupby, é possível calcular vária smétricas ao mesmo tempo usando o método .agg
+# Adicionando a média móvel de 90 dias e o desvio padrão, você pode facilmente identificar períoos de maior volatilidade.
+r = googledata.Close.rolling('90D').agg(['mean','std'])
+r.plot(subplots = True)
+
+# Finalmente, vamos exibir uma mediana dos últos 360 dias corridos, ou o quartil de 50% juntos com os quartis de 10% e 90% .
+rolling = googledata.Close.rolling('360D')
+q10 = rolling.quantile(0.1).to_frame('q10')
+median = rolling.median().to_frame('median')
+q90 = rolling.quantile(0.9).to_frame('q90')
+pd.concat([q10,median,q90], axis=1).plot()
 
 
 
