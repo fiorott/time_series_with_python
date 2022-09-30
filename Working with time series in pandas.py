@@ -949,6 +949,155 @@ median = rolling.median().to_frame('median')
 q90 = rolling.quantile(0.9).to_frame('q90')
 pd.concat([q10,median,q90], axis=1).plot()
 
+## exercício
+
+# Rolling average air quality since 2010 for new york city
+#
+# The last video was about rolling window functions. To practice this new tool, you'll start with air quality trends' \
+#   ' for New York City since 2010. In particular, you'll be using the daily Ozone concentration levels provided by the
+# Environmental Protection Agency to calculate & plot the 90 and 360 day rolling average.
+#
+#
+# We have already imported pandas as pd and matplotlib.pyplot as plt.
+#
+# Use pd.read_csv() to import 'ozone.csv', creating a DateTimeIndex from the 'date' column using parse_dates and index_col, and assign the result to data.
+# Add the columns '90D' and '360D' containing the 90 and 360 rolling calendar day .mean() for the column 'Ozone'.
+# Plot data starting 2010, setting 'New York City' as title.
+
+# Import and inspect ozone data here
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\air_quality_data\ozone_nyc.csv'
+data = pd.read_csv(path, parse_dates=['date'], index_col='date')
+print(data.info())
+
+# Calculate 90d and 360d rolling mean for the last price
+data['90D'] = data.Ozone.rolling('90D').mean()
+data['360D'] = data.Ozone.rolling('360D').mean()
+
+# Plot data
+data.loc['2010':].plot(title='New York City')
+plt.show()
+
+# exerc
+
+# Rolling 360-day median & std. deviation for nyc ozone data since 2000
+# The last video also showed you how to calculate several rolling statistics using the .agg() method, similar to .groupby().
+#
+# Let's take a closer look at the air quality history of NYC using the Ozone data you have seen before. The daily data ' \
+#    'are very volatile, so using a longer term rolling average can help reveal a longer term trend.
+#
+# You'll be using a 360 day rolling window, and .agg() to calculate the rolling mean and standard deviation for the ' \
+#    'daily average ozone values since 2000.
+
+# Import and inspect ozone data here
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\air_quality_data\ozone_nyc.csv'
+data = pd.read_csv(path, parse_dates=['date'], index_col='date').dropna()
+
+# Calculate the rolling mean and std here
+rolling_stats = data.Ozone.rolling(window = 360).agg(['mean', 'std'])
+
+# Join rolling_stats with ozone data
+stats = data.join(rolling_stats)
+
+# Plot stats
+stats.plot()
+plt.show()
+
+#Exerc 2
+
+# Rolling quantiles for daily air quality in nyc
+# You learned in the last video how to calculate rolling quantiles to describe changes in the dispersion of a time series over time in a way that is less sensitive to outliers than using the mean and standard deviation.
+#
+# Let's calculate rolling quantiles - at 10%, 50% (median) and 90% - of the distribution of daily average ozone concentration in NYC using a 360-day rolling window.
+
+path= r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\air_quality_data\ozone_nyc.csv'
+data = pd.read_csv(path, parse_dates=['date'], index_col='date').dropna()
+
+# Resample, interpolate and inspect ozone data here
+data = data.resample('D').interpolate()
+data.info()
+
+# Create the rolling window
+rolling = data.Ozone.rolling('360D')
+
+# Insert the rolling quantiles to the monthly returns
+data['q10'] = rolling.quantile(0.1)
+data['q50'] = rolling.quantile(0.5)
+data['q90'] = rolling.quantile(0.9)
+
+# Plot the data
+data.plot()
+plt.show()
+
+#_____
+# Expanding window functions with pandas
+
+# Similar ao que vimos antes, mas ao invés de olhar só para um ajanela fixa, olha para todos os valores anteriores
+# até aquele determinado ponto. É útil para calcular taxa de retorno acumulada, valores max/min.
+# Há duas opções o pandas:
+# .expanding() - funciona como o .rolling()
+# .cumsum(), .cumprod(), cumin() / max() para alguns casos específicos
+
+# Exemplo
+# Começamos com uma lista de números de 0 a 4.
+df = pd.DataFrame({'data': range(5)})
+# Podemos calcular o mesmo resultado usando o método expanding seguido pela de soma ou pela método de soma cumulativa diretamente
+df['expanding sum'] = df.data.expanding().sum()
+df['cumulative sum'] = df.data.cumsum()
+# O resultado será sempre uma lista com a soma dos valores anteriores.
+df
+
+# No próximo, usaremos os dados do S&P 500 dos últimos 10 anos para calcular os rendimentos (return)
+# O retorno em um único período é simplesmente a cotação naquele dado momento, dividido pela cotação no período inicial, menos 1.
+# O retorno calculado em vários períodos é dado pela multiplicação de (1+r) de cada período, tudo isto subtraído de 1.
+# O pandas torna estes calculos fáceis de realizar -> basta usar:
+# o método .pct_change() para o rendimento no período
+# .add(), .sub(), .mul(), .div() para calculos matemáticos básicos e
+# .cumprod() para o produto cumulativo.
+
+# Voltando ao cálculo dos rendimentos do S&P
+
+path = r'D:\Rafael\OneDrive\Documentos\projetos_pycharm\Times Series in Python\Data\stock_data\sp500.csv'
+data = pd.read_csv(path , parse_dates=['date'], index_col='date')
 
 
+
+# Calculando o retorno do período com variação percental e adiciionado 1
+pr = data.SP500.pct_change() # retorno do período
+pr_plus_one = pr.add(1)
+# Calculando o produto acumulado e subtraindo 1.
+cumulative_return = pr_plus_one.cumprod().sub(1)
+cumulative_return.mul(100).plot()
+# Parece que o S&P 500 aumentou 60% desde 2007, apesar de ter caído 60% em 2009.
+
+# Getting the running min & mx
+# É possível calcular o valor mín e máx de um determinado período de uma série temporal.
+data['running_min'] = data.SP500.expanding().min()
+data['running_max'] = data.SP500.expanding().max()
+data.plot()
+# A linha vermelha e verde delineiam o mínimo e o máximo até a data atual para cdaa dia.
+
+# Rolling annual rate of return
+
+# Também podemos combinar o conceito de rolling window (janela móvel) com o cálculo cumulativo.
+# Vamos calcular a taxa de retorno anual móvel, ou seja, o retorno acumulado para todos os períodos de 360 dias corridos
+# durante o período dos últimos 360 dias corridos pelo período de dez anos coberto pelos dados.
+# Este cálculo não existe como um método em si, mas podemos criar uma função de cálculo de multiperíodo e usar
+# Apply para executá-la os dados na rolling window. Os dados na rolling window estão disponíveis para sua função
+# como um array do numpy. Adicione 1 para incrementar todos os retornos, aplique a função product do numpy e subtraia
+# 1 pr implementar a fórmula acima.
+
+def multi_period_return(period_returns):
+    return np.prod(period_returns +1) -1
+
+# Basta passar esta função dentro de um .apply após cirar uma janela de 360 dias corridos de retornos diários.
+# Multiplique o retorno contínuo de 1 ano por 100 para mostrá-los em termos percentuais.
+# Plote ao lado do indice usando subplots = true
+
+pr = data.SP500.pct_change() # priod return
+r = pr.rolling('360D').apply(multi_period_return)
+data['Rolling 1yr Return'] = r.mul(100)
+data.plot(subplots = True)
+plt.show()
+
+# O resultado mostra as grandes oscilações de retorno anual após a crise de 2008.
 
